@@ -1,0 +1,9 @@
+Package: dev.vtnde.paperbackmod
+Name: PaperbackMod
+Version: 0.1.0
+Architecture: iphoneos-arm64
+Description: Local chapter notifications and UI tweaks for Paperback
+Maintainer: vtnde
+Author: vtnde
+Section: Tweaks
+Depends: mobilesubstrate

@@ -1,0 +1,13 @@
+_tools/
+build/
+headers/
+headers_dm/
+headers_src/
+decomp/
+mod/.theos/
+mod/obj/
+*.ipa
+*.dylib
+ghidra.log
+analyze.*
+objc_dump.txt
