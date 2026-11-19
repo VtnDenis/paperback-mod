@@ -27,29 +27,39 @@ static NSInteger PBIndexOfController(NSArray<UIViewController *> *vcs, NSString 
     return NSNotFound;
 }
 
+static void PBJumpToLibrary(UITabBarController *tabs, int attempt) {
+    NSInteger library = PBIndexOfController(tabs.viewControllers, @"LibraryViewController");
+    if (library == NSNotFound) {
+        // The tabs are attached after viewDidAppear: returns (the probe saw 0
+        // children there), so a single shot always misses.
+        if (attempt < 20) {
+            dispatch_after(dispatch_time(DISPATCH_TIME_NOW, 500 * NSEC_PER_MSEC), dispatch_get_main_queue(), ^{
+                PBJumpToLibrary(tabs, attempt + 1);
+            });
+        }
+        return;
+    }
+    if (tabs.selectedIndex != library) tabs.selectedIndex = library;
+    // ESTabBar draws its own indicators and may not follow selectedIndex alone.
+    if (library < (NSInteger)tabs.tabBar.items.count) tabs.tabBar.selectedItem = tabs.tabBar.items[library];
+    if (!PBDiagShown) {
+        NSMutableArray<NSString *> *names = [NSMutableArray array];
+        for (UIViewController *child in tabs.viewControllers) [names addObject:NSStringFromClass(child.class)];
+        PBShowDiag(tabs, [NSString stringWithFormat:@"%lu -> %@ (saut: %ld)",
+                          (unsigned long)names.count, [names componentsJoinedByString:@", "], (long)library]);
+    }
+}
+
 %hook _TtC9Paperback21MainTabViewController
 
 - (void)viewDidAppear:(BOOL)animated {
     %orig;
-    if (!PBDiagShown) {
-        NSMutableArray<NSString *> *names = [NSMutableArray array];
-        for (UIViewController *child in ((UITabBarController *)self).viewControllers) {
-            [names addObject:NSStringFromClass(child.class)];
-        }
-        PBShowDiag(self, [NSString stringWithFormat:@"%lu -> %@",
-                          (unsigned long)((UITabBarController *)self).viewControllers.count,
-                          [names componentsJoinedByString:@", "]]);
-    }
     // Once only: viewDidAppear fires again after modal sheets, and resetting the
     // tab every time would fight the user.
     static BOOL jumped;
     if (jumped) return;
-    UITabBarController *tabs = (UITabBarController *)self;
-    NSInteger library = PBIndexOfController(tabs.viewControllers, @"LibraryViewController");
-    if (library != NSNotFound) {
-        jumped = YES;
-        if (tabs.selectedIndex != library) tabs.selectedIndex = library;
-    }
+    jumped = YES;
+    PBJumpToLibrary((UITabBarController *)self, 0);
 }
 %end
 
@@ -79,7 +89,7 @@ static void PBRefreshIfDue(void) {
 - (void)viewDidLoad {
     %orig;
     PBLibraryViewController = (UIViewController *)self;
-    dispatch_after(dispatch_time(DISPATCH_TIME_NOW, 4 * NSEC_PER_SEC), dispatch_get_main_queue(), ^{
+    dispatch_after(dispatch_time(DISPATCH_TIME_NOW, 10 * NSEC_PER_SEC), dispatch_get_main_queue(), ^{
         if (!PBDiagShown) PBShowDiag(PBLibraryViewController, @"JAMAIS (repli Library)");
     });
     // A timer only ticks while the process is alive; combined with KeepAlive it
