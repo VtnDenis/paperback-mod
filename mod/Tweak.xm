@@ -235,6 +235,7 @@ static void PBApplyGlass(UIButton *button) {
 
 static void PBWalk(UIView *view, void (^visit)(UIButton *)) {
     PBDiagViewsSeen++;
+    if ([view isKindOfClass:UIControl.class]) PBDiagControlsSeen++;
     if ([view isKindOfClass:UIButton.class]) visit((UIButton *)view);
     for (UIView *child in view.subviews) PBWalk(child, visit);
 }

@@ -24,6 +24,7 @@ void PBShowDiag(id host, id tabList);
 void PBScanWindows(void);
 void PBScanView(id root);
 extern int PBDiagViewsSeen;
+extern int PBDiagControlsSeen;
 
 #ifdef __cplusplus
 }

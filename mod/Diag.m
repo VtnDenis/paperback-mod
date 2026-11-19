@@ -10,6 +10,7 @@ int PBDiagGlassApplied;
 int PBDiagEligible;
 int PBDiagButtonsSeen;
 int PBDiagViewsSeen;
+int PBDiagControlsSeen;
 BOOL PBGlassEnabled = NO;
 BOOL PBDiagShown;
 
@@ -67,8 +68,9 @@ static NSString *PBClassState(const char *name) {
 - (void)pbGlass {
     PBGlassEnabled = YES;
     PBScanView(self.view.window);
-    _text.text = [_text.text stringByAppendingFormat:@"\nverre ON -> appliqué %d, éligibles %d\n",
-                  PBDiagGlassApplied, PBDiagEligible];
+    _text.text = [_text.text stringByAppendingFormat:
+                  @"\nverre ON -> vues %d, controls %d, boutons %d, éligibles %d, appliqués %d\n",
+                  PBDiagViewsSeen, PBDiagControlsSeen, PBDiagButtonsSeen, PBDiagEligible, PBDiagGlassApplied];
 }
 
 - (void)setReport:(NSString *)report {
@@ -145,6 +147,10 @@ void PBShowDiag(id host, id tabList) {
     [report appendFormat:@"boutons vus: %d\n", PBDiagButtonsSeen];
     [report appendFormat:@"scènes/fenêtres: %lu/%lu\n", (unsigned long)scenes, (unsigned long)windows];
     [report appendFormat:@"vues parcourues: %d\n", PBDiagViewsSeen];
+    [report appendFormat:@"controls (UIControl): %d\n", PBDiagControlsSeen];
+    UIViewController *root = presenter.view.window.rootViewController;
+    [report appendFormat:@"racine: %@\n", root ? NSStringFromClass(root.class) : @"(aucune)"];
+    [report appendFormat:@"enfants racine: %lu\n", (unsigned long)root.childViewControllers.count];
     [report appendFormat:@"UIGlassEffect: %@\n", PBClassState("UIGlassEffect")];
     [report appendFormat:@"effectWithStyle:: %@\n", canMake ? @"présente" : @"ABSENTE"];
     [report appendFormat:@"style 0 -> %@\n", sample ? NSStringFromClass([sample class]) : @"nil"];
