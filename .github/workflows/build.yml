@@ -17,7 +17,8 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y make perl clang lld dpkg
           git clone --depth 1 https://github.com/theos/theos.git "$HOME/theos"
-          "$HOME/theos/bin/update-theos" || true
+          export THEOS="$HOME/theos"
+          "$THEOS/bin/update-theos"
           git clone --depth 1 --filter=blob:none --sparse https://github.com/theos/sdks.git "$HOME/sdks"
           git -C "$HOME/sdks" sparse-checkout set iPhoneOS16.5.sdk
           mkdir -p "$HOME/theos/sdks"
