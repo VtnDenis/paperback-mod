@@ -27,10 +27,36 @@ static NSInteger PBIndexOfController(NSArray<UIViewController *> *vcs, NSString 
     return NSNotFound;
 }
 
+static NSString *PBTabNames(UITabBarController *tabs) {
+    NSMutableArray<NSString *> *names = [NSMutableArray array];
+    for (NSUInteger i = 0; i < tabs.viewControllers.count; i++) {
+        UIViewController *vc = tabs.viewControllers[i];
+        [names addObject:[NSString stringWithFormat:@"%lu:%@(%@)",
+                          (unsigned long)i, NSStringFromClass(vc.class), vc.tabBarItem.title ?: @"?"]];
+    }
+    return [names componentsJoinedByString:@", "];
+}
+
+// Class name first, then the tab title: the app may wrap or rename its tab
+// controllers, and the label the user sees is the reliable signal.
+static NSInteger PBFindLibraryTab(UITabBarController *tabs) {
+    NSInteger byClass = PBIndexOfController(tabs.viewControllers, @"LibraryViewController");
+    if (byClass != NSNotFound) return byClass;
+    for (NSUInteger i = 0; i < tabs.tabBar.items.count; i++) {
+        NSString *title = tabs.tabBar.items[i].title.lowercaseString ?: @"";
+        if ([title containsString:@"library"] || [title containsString:@"biblioth"]) return (NSInteger)i;
+    }
+    for (NSUInteger i = 0; i < tabs.viewControllers.count; i++) {
+        NSString *title = tabs.viewControllers[i].tabBarItem.title.lowercaseString ?: @"";
+        if ([title containsString:@"library"] || [title containsString:@"biblioth"]) return (NSInteger)i;
+    }
+    return NSNotFound;
+}
+
 static void PBJumpToLibrary(UITabBarController *tabs, int attempt) {
-    NSInteger library = PBIndexOfController(tabs.viewControllers, @"LibraryViewController");
-    PBSetVerdict(@"saut", [NSString stringWithFormat:@"essai %d, tabs %lu, index %ld",
-                           attempt, (unsigned long)tabs.viewControllers.count, (long)library]);
+    NSInteger library = PBFindLibraryTab(tabs);
+    PBSetVerdict(@"saut", [NSString stringWithFormat:@"essai %d, tabs %lu, index %ld | %@",
+                           attempt, (unsigned long)tabs.viewControllers.count, (long)library, PBTabNames(tabs)]);
     if (library == NSNotFound) {
         // The tabs are attached after viewDidAppear: returns (the probe saw 0
         // children there), so a single shot always misses.

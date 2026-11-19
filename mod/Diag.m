@@ -17,7 +17,7 @@ int PBDiagRefreshes;
 int PBDiagNotifications;
 int PBDiagKeepAliveStarts;
 int PBDiagKeepAliveStops;
-BOOL PBGlassEnabled = NO;
+BOOL PBGlassEnabled = YES;
 BOOL PBDiagShown;
 
 static NSMutableDictionary<NSString *, NSNumber *> *PBHooks;
@@ -254,6 +254,11 @@ void PBShowDiag(id host, id tabList) {
      (unsigned long)root.childViewControllers.count,
      (unsigned long)(tabs ? tabs.viewControllers.count : 0),
      (long)(tabs ? tabs.selectedIndex : -1)];
+    if (tabs) {
+        [report appendString:@"onglets: "];
+        for (UITabBarItem *item in tabs.tabBar.items) [report appendFormat:@"[%@] ", item.title ?: @"-"];
+        [report appendString:@"\n"];
+    }
 
     PBAppendSection(report, @"TIMELINE 1s");
     for (NSString *line in PBTimeline) [report appendFormat:@"%@\n", line];
