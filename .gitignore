@@ -11,3 +11,4 @@ mod/obj/
 ghidra.log
 analyze.*
 objc_dump.txt
+.zsign_cache/
