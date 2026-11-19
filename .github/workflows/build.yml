@@ -15,7 +15,13 @@ jobs:
       - name: theos and sdk
         run: |
           sudo apt-get update
-          sudo apt-get install -y make perl clang lld dpkg
+          sudo apt-get install -y make perl dpkg wget
+          # Same clang major as the local WSL build: ubuntu's clang 18 can't
+          # build the SDK's libc++ modules ("could not build module 'std'").
+          wget -qO- https://apt.llvm.org/llvm.sh | sudo bash -s -- 21
+          sudo apt-get install -y clang-21 lld-21
+          sudo update-alternatives --install /usr/bin/clang clang /usr/lib/llvm-21/bin/clang 100
+          sudo update-alternatives --install /usr/bin/clang++ clang++ /usr/lib/llvm-21/bin/clang++ 100
           git clone --depth 1 https://github.com/theos/theos.git "$HOME/theos"
           export THEOS="$HOME/theos"
           "$THEOS/bin/update-theos"
