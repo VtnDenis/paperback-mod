@@ -1,4 +1,5 @@
 #import <UserNotifications/UserNotifications.h>
+#import "PBMod.h"
 
 // Central place for the local-notification plumbing. Nothing here knows about
 // Paperback; the hooks call in.

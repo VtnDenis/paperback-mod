@@ -57,8 +57,8 @@ manglé, sinon le hook fait silencieusement rien.
 
 | Hook | Nom runtime | Rôle |
 |---|---|---|
-| `scene:willConnectToSession:options:` | `_TtC9Paperback13SceneDelegate` | demander l'autorisation de notification |
-| `sceneWillResignActive:` / `sceneDidBecomeActive:` | `_TtC9Paperback13SceneDelegate` | démarrer/arrêter le keep-alive audio (téléchargements en arrière-plan) |
+| `UIApplicationDidFinishLaunchingNotification` | — (pas de hook) | demander l'autorisation de notification |
+| `UIApplicationDidEnterBackgroundNotification` / `UIApplicationWillEnterForegroundNotification` | — (pas de hook) | démarrer/arrêter le keep-alive audio (téléchargements en arrière-plan) |
 | `viewDidAppear:` | `_TtC9Paperback21MainTabViewController` | atterrir sur l'onglet Library une seule fois |
 | `viewDidLoad` | `_TtC9Paperback21LibraryViewController` | mémoriser le VC + `NSTimer` 60 s → `didRefreshCollectionView:` toutes les 30 min |
 | `viewDidLoad` / `viewDidDisappear:` | `_TtC9Paperback28LibraryUpdaterViewController` | borne la fenêtre « refresh en cours » |

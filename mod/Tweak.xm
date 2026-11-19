@@ -1,34 +1,32 @@
 #import <UIKit/UIKit.h>
 #import <objc/runtime.h>
 
-extern void PBRequestAuth(void);
-extern void PBPostLocalNotification(NSString *title, NSString *body, NSString *thread);
-extern void PBKeepAliveStart(void);
-extern void PBKeepAliveStop(void);
+#import "PBMod.h"
 
 static const NSTimeInterval PBRefreshInterval = 30 * 60;
 
 #pragma mark - Scene lifecycle
 
-%hook _TtC9Paperback13SceneDelegate
-
-- (void)scene:(id)scene willConnectToSession:(id)session options:(id)options {
-    %orig;
-    PBRequestAuth();
+// Notifications instead of %hook: the app's SceneDelegate implements
+// -sceneDidBecomeActive: but not -sceneWillResignActive:, and a %orig that
+// points nowhere takes the whole process down at launch.
+%ctor {
+    NSNotificationCenter *center = [NSNotificationCenter defaultCenter];
+    [center addObserverForName:UIApplicationDidFinishLaunchingNotification
+                        object:nil queue:nil usingBlock:^(NSNotification *note) {
+        PBRequestAuth();
+    }];
+    [center addObserverForName:UIApplicationDidEnterBackgroundNotification
+                        object:nil queue:nil usingBlock:^(NSNotification *note) {
+        // Downloads die in the background otherwise: no background URLSession, no
+        // BGTask, so the queue only lives while the process runs. See MAP.md.
+        PBKeepAliveStart();
+    }];
+    [center addObserverForName:UIApplicationWillEnterForegroundNotification
+                        object:nil queue:nil usingBlock:^(NSNotification *note) {
+        PBKeepAliveStop();
+    }];
 }
-
-- (void)sceneDidBecomeActive:(id)scene {
-    %orig;
-    PBKeepAliveStop();
-}
-
-- (void)sceneWillResignActive:(id)scene {
-    %orig;
-    // Downloads die in the background otherwise: no background URLSession, no
-    // BGTask, so the queue only lives while the process runs. See MAP.md.
-    PBKeepAliveStart();
-}
-%end
 
 #pragma mark - Open on Library instead of Discover
 

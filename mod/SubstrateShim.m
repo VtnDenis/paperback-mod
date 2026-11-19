@@ -4,9 +4,20 @@
 // single call Logos emits. Subclass overrides are installed on the subclass
 // (class_addMethod) instead of patching the inherited implementation, which
 // would affect every other class sharing it (e.g. UIView's -didMoveToWindow).
+//
+// %orig is a raw pointer Logos loads and calls: it must never stay NULL. When
+// the class has nothing to chain to (an optional delegate method the app never
+// implemented), we still install our method and point %orig at a no-op instead
+// of leaving a null pointer to be called.
+static void PBNoopHook(id self, SEL _cmd) {}
+
 void MSHookMessageEx(Class cls, SEL sel, IMP imp, IMP *result) {
     Method inherited = class_getInstanceMethod(cls, sel);
-    if (!inherited) return;
+    if (!inherited) {
+        class_addMethod(cls, sel, imp, "v@:@");
+        if (result) *result = (IMP)PBNoopHook;
+        return;
+    }
     IMP previous = method_getImplementation(inherited);
     if (!class_addMethod(cls, sel, imp, method_getTypeEncoding(inherited))) {
         previous = method_setImplementation(class_getInstanceMethod(cls, sel), imp);

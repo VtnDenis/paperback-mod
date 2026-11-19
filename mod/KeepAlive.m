@@ -1,4 +1,5 @@
 #import <AVFoundation/AVFoundation.h>
+#import "PBMod.h"
 
 // Paperback downloads with in-memory URLSession tasks only: when iOS suspends
 // the app the queue dies. The plist declares the audio background mode, so a

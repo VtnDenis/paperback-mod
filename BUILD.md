@@ -19,6 +19,12 @@ Deux contournements Linux, faits par `_tools/build_dylib.sh` (pas besoin de sudo
 - `substrate.h` inclut `<CydiaSubstrate/CydiaSubstrate.h>` → lien symbolique posé
   dans `$THEOS/vendor/include/CydiaSubstrate/`.
 
+Piège qui coûte un crash au lancement : le link se fait avec `-undefined
+dynamic_lookup`, donc un symbole oublié ne casse pas la compilation — dyld le
+résout à 0 et l'app saute à l'adresse 0. Les `.xm` sont compilés en ObjC++, les
+`.m` en C : les fonctions partagées (`PBRequestAuth`, `PBKeepAliveStart`…) sont
+donc déclarées dans `mod/PBMod.h` sous `extern "C"`.
+
 ## Compiler le dylib
 
 ```
