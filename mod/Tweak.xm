@@ -234,18 +234,24 @@ static void PBApplyGlass(UIButton *button) {
 %end
 
 static void PBWalk(UIView *view, void (^visit)(UIButton *)) {
+    PBDiagViewsSeen++;
     if ([view isKindOfClass:UIButton.class]) visit((UIButton *)view);
     for (UIView *child in view.subviews) PBWalk(child, visit);
+}
+
+void PBScanView(id root) {
+    if (![root isKindOfClass:UIView.class]) return;
+    PBWalk(root, ^(UIButton *button) {
+        PBDiagButtonsSeen++;
+        PBApplyGlass(button);
+    });
 }
 
 void PBScanWindows(void) {
     for (UIScene *scene in UIApplication.sharedApplication.connectedScenes) {
         if (![scene isKindOfClass:UIWindowScene.class]) continue;
         for (UIWindow *window in ((UIWindowScene *)scene).windows) {
-            PBWalk(window, ^(UIButton *button) {
-                PBDiagButtonsSeen++;
-                PBApplyGlass(button);
-            });
+            PBScanView(window);
         }
     }
 }

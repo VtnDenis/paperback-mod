@@ -9,6 +9,7 @@ int PBDiagHookFired;
 int PBDiagGlassApplied;
 int PBDiagEligible;
 int PBDiagButtonsSeen;
+int PBDiagViewsSeen;
 BOOL PBGlassEnabled = NO;
 BOOL PBDiagShown;
 
@@ -65,7 +66,7 @@ static NSString *PBClassState(const char *name) {
 
 - (void)pbGlass {
     PBGlassEnabled = YES;
-    PBScanWindows();
+    PBScanView(self.view.window);
     _text.text = [_text.text stringByAppendingFormat:@"\nverre ON -> appliqué %d, éligibles %d\n",
                   PBDiagGlassApplied, PBDiagEligible];
 }
@@ -125,7 +126,15 @@ void PBShowDiag(id host, id tabList) {
         sample = build(glass, make, 0);
     }
 
-    PBScanWindows();
+    // Scan the window the presenting controller actually lives in: on device the
+    // scene list came back empty, which is why the walk found nothing.
+    NSUInteger scenes = 0, windows = 0;
+    for (UIScene *scene in UIApplication.sharedApplication.connectedScenes) {
+        if (![scene isKindOfClass:UIWindowScene.class]) continue;
+        scenes++;
+        windows += ((UIWindowScene *)scene).windows.count;
+    }
+    PBScanView(presenter.view.window ?: presenter.view);
 
     NSMutableString *report = [NSMutableString string];
     [report appendFormat:@"iOS %@\n", UIDevice.currentDevice.systemVersion];
@@ -134,6 +143,8 @@ void PBShowDiag(id host, id tabList) {
     [report appendFormat:@"verre appliqué: %d boutons\n", PBDiagGlassApplied];
     [report appendFormat:@"boutons éligibles: %d\n", PBDiagEligible];
     [report appendFormat:@"boutons vus: %d\n", PBDiagButtonsSeen];
+    [report appendFormat:@"scènes/fenêtres: %lu/%lu\n", (unsigned long)scenes, (unsigned long)windows];
+    [report appendFormat:@"vues parcourues: %d\n", PBDiagViewsSeen];
     [report appendFormat:@"UIGlassEffect: %@\n", PBClassState("UIGlassEffect")];
     [report appendFormat:@"effectWithStyle:: %@\n", canMake ? @"présente" : @"ABSENTE"];
     [report appendFormat:@"style 0 -> %@\n", sample ? NSStringFromClass([sample class]) : @"nil"];

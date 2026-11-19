@@ -22,6 +22,8 @@ extern BOOL PBDiagShown;
 extern BOOL PBGlassEnabled;
 void PBShowDiag(id host, id tabList);
 void PBScanWindows(void);
+void PBScanView(id root);
+extern int PBDiagViewsSeen;
 
 #ifdef __cplusplus
 }
