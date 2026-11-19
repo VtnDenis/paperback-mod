@@ -68,8 +68,8 @@ static void PBJumpToLibrary(UITabBarController *tabs, int attempt) {
         return;
     }
     if (tabs.selectedIndex != library) tabs.selectedIndex = library;
-    // ESTabBar draws its own indicators and may not follow selectedIndex alone.
-    if (library < (NSInteger)tabs.tabBar.items.count) tabs.tabBar.selectedItem = tabs.tabBar.items[library];
+    // No tabBar.selectedItem here: setting an item the bar hasn't registered yet
+    // raises NSException from UIKit and killed the app at launch (ips: setSelectedItem:).
     PBSetVerdict(@"saut", [NSString stringWithFormat:@"OK index %ld -> sel %ld", (long)library, (long)tabs.selectedIndex]);
     if (!PBDiagShown) {
         NSMutableArray<NSString *> *names = [NSMutableArray array];
