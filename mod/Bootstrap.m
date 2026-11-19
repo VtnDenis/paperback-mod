@@ -6,6 +6,8 @@
 // Tweak.xm replaced it, so no hook was ever installed (diag: 0 didMoveToWindow
 // calls). Keeping this code in its own constructor leaves the Logos one alone.
 __attribute__((constructor)) static void PBBootstrap(void) {
+    PBStartDiagTimeline();
+    PBLogHook(@"tweak.loaded");
     NSNotificationCenter *center = [NSNotificationCenter defaultCenter];
     [center addObserverForName:UIApplicationDidFinishLaunchingNotification
                         object:nil queue:nil usingBlock:^(NSNotification *note) {

@@ -26,6 +26,7 @@
 @end
 
 void PBRequestAuth(void) {
+    PBLogHook(@"notif.auth.requested");
     UNUserNotificationCenter *center = [UNUserNotificationCenter currentNotificationCenter];
     static PBNotificationPresenter *presenter;
     if (!presenter) {

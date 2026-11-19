@@ -29,6 +29,8 @@ static NSInteger PBIndexOfController(NSArray<UIViewController *> *vcs, NSString 
 
 static void PBJumpToLibrary(UITabBarController *tabs, int attempt) {
     NSInteger library = PBIndexOfController(tabs.viewControllers, @"LibraryViewController");
+    PBSetVerdict(@"saut", [NSString stringWithFormat:@"essai %d, tabs %lu, index %ld",
+                           attempt, (unsigned long)tabs.viewControllers.count, (long)library]);
     if (library == NSNotFound) {
         // The tabs are attached after viewDidAppear: returns (the probe saw 0
         // children there), so a single shot always misses.
@@ -42,6 +44,7 @@ static void PBJumpToLibrary(UITabBarController *tabs, int attempt) {
     if (tabs.selectedIndex != library) tabs.selectedIndex = library;
     // ESTabBar draws its own indicators and may not follow selectedIndex alone.
     if (library < (NSInteger)tabs.tabBar.items.count) tabs.tabBar.selectedItem = tabs.tabBar.items[library];
+    PBSetVerdict(@"saut", [NSString stringWithFormat:@"OK index %ld -> sel %ld", (long)library, (long)tabs.selectedIndex]);
     if (!PBDiagShown) {
         NSMutableArray<NSString *> *names = [NSMutableArray array];
         for (UIViewController *child in tabs.viewControllers) [names addObject:NSStringFromClass(child.class)];
@@ -54,10 +57,22 @@ static void PBJumpToLibrary(UITabBarController *tabs, int attempt) {
 
 - (void)viewDidAppear:(BOOL)animated {
     %orig;
+    PBLogHook(@"tab.viewDidAppear");
     // Once only: viewDidAppear fires again after modal sheets, and resetting the
     // tab every time would fight the user.
     static BOOL jumped;
     if (jumped) return;
+    jumped = YES;
+    PBJumpToLibrary((UITabBarController *)self, 0);
+}
+
+// The tab list is assigned through this setter: hooking it means the jump no
+// longer depends on when viewDidAppear happens to run.
+- (void)setViewControllers:(NSArray *)controllers {
+    %orig;
+    PBLogHook(@"tab.setViewControllers");
+    static BOOL jumped;
+    if (jumped || !controllers.count) return;
     jumped = YES;
     PBJumpToLibrary((UITabBarController *)self, 0);
 }
@@ -76,11 +91,15 @@ static BOOL PBRefreshInFlight(void) {
 }
 
 static void PBRefreshIfDue(void) {
+    PBDiagRefreshTicks++;
     if (PBRefreshInFlight() || !PBLibraryViewController) return;
     if ([NSDate date].timeIntervalSince1970 - PBLastRefresh < PBRefreshInterval) return;
     PBLastRefresh = [NSDate date].timeIntervalSince1970;
     SEL refresh = NSSelectorFromString(@"didRefreshCollectionView:");
     void (*call)(id, SEL, id) = (void (*)(id, SEL, id))[(id)PBLibraryViewController methodForSelector:refresh];
+    if (!call) return;
+    PBDiagRefreshes++;
+    PBLogHook(@"library.didRefreshCollectionView:");
     call(PBLibraryViewController, refresh, nil);
 }
 
@@ -88,8 +107,9 @@ static void PBRefreshIfDue(void) {
 
 - (void)viewDidLoad {
     %orig;
+    PBLogHook(@"library.viewDidLoad");
     PBLibraryViewController = (UIViewController *)self;
-    dispatch_after(dispatch_time(DISPATCH_TIME_NOW, 10 * NSEC_PER_SEC), dispatch_get_main_queue(), ^{
+    dispatch_after(dispatch_time(DISPATCH_TIME_NOW, 15 * NSEC_PER_SEC), dispatch_get_main_queue(), ^{
         if (!PBDiagShown) PBShowDiag(PBLibraryViewController, @"JAMAIS (repli Library)");
     });
     // A timer only ticks while the process is alive; combined with KeepAlive it
@@ -143,6 +163,8 @@ static void PBFlushUpdates(void) {
     if ([body isEqualToString:PBLastBody] && now - PBLastPost < 30 * 60) return;
     PBLastBody = body;
     PBLastPost = now;
+    PBDiagNotifications++;
+    PBLogHook(@"notif.posted");
     PBPostLocalNotification(@"New chapters", body, @"paperback.library");
 }
 
@@ -156,6 +178,7 @@ static void PBScheduleFlush(void) {
 
 - (void)viewDidLoad {
     %orig;
+    PBLogHook(@"updater.viewDidLoad");
     PBTitles = [NSMutableDictionary new];
     PBCounts = [NSMutableDictionary new];
     PBRefreshStarted = [NSDate date].timeIntervalSince1970;
@@ -169,6 +192,7 @@ static void PBScheduleFlush(void) {
 
 - (NSInteger)tableView:(id)tableView numberOfRowsInSection:(NSInteger)section {
     NSInteger rows = %orig;
+    PBLogHook(@"updater.numberOfRowsInSection:");
     if (rows > 0) {
         PBCounts[@(section)] = @(rows);
         PBScheduleFlush();
@@ -178,7 +202,10 @@ static void PBScheduleFlush(void) {
 
 - (NSString *)tableView:(id)tableView titleForHeaderInSection:(NSInteger)section {
     NSString *title = %orig;
-    if (title.length) PBTitles[@(section)] = title;
+    if (title.length) {
+        PBTitles[@(section)] = title;
+        PBLogHook(@"updater.titleForHeaderInSection:");
+    }
     return title;
 }
 %end
@@ -252,6 +279,9 @@ static void PBWalk(UIView *view, void (^visit)(UIButton *)) {
 
 void PBScanView(id root) {
     if (![root isKindOfClass:UIView.class]) return;
+    // Counters are per scan: cumulative totals made every later report look
+    // like the UI had grown when it was the same walk plus the previous one.
+    PBDiagViewsSeen = PBDiagControlsSeen = PBDiagButtonsSeen = 0;
     PBWalk(root, ^(UIButton *button) {
         PBDiagButtonsSeen++;
         PBApplyGlass(button);

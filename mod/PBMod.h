@@ -12,19 +12,31 @@ void PBRequestAuth(void);
 void PBPostLocalNotification(NSString *title, NSString *body, NSString *thread);
 void PBKeepAliveStart(void);
 void PBKeepAliveStop(void);
+BOOL PBKeepAliveActive(void);
 
-// Probe build only.
-extern int PBDiagHookFired;
+// One full report instead of another round of guesses: every hook counts itself,
+// a 1 s timeline records what the window looks like, and each feature leaves a
+// verdict line.
+void PBLogHook(NSString *name);
+void PBSetVerdict(NSString *key, NSString *value);
+void PBStartDiagTimeline(void);
+void PBShowDiag(id host, id tabList);
+
 extern int PBDiagGlassApplied;
 extern int PBDiagEligible;
 extern int PBDiagButtonsSeen;
-extern BOOL PBDiagShown;
-extern BOOL PBGlassEnabled;
-void PBShowDiag(id host, id tabList);
-void PBScanWindows(void);
-void PBScanView(id root);
 extern int PBDiagViewsSeen;
 extern int PBDiagControlsSeen;
+extern int PBDiagRefreshTicks;
+extern int PBDiagRefreshes;
+extern int PBDiagNotifications;
+extern int PBDiagKeepAliveStarts;
+extern int PBDiagKeepAliveStops;
+extern BOOL PBDiagShown;
+extern BOOL PBGlassEnabled;
+
+void PBScanWindows(void);
+void PBScanView(id root);
 
 #ifdef __cplusplus
 }

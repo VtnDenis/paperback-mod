@@ -29,6 +29,7 @@ static NSData *PBSilentWAV(void) {
 }
 
 void PBKeepAliveStart(void) {
+    PBDiagKeepAliveStarts++;
     dispatch_async(dispatch_get_main_queue(), ^{
         if (PBPlayer) return;
         AVAudioSession *session = AVAudioSession.sharedInstance;
@@ -49,6 +50,7 @@ void PBKeepAliveStart(void) {
 }
 
 void PBKeepAliveStop(void) {
+    PBDiagKeepAliveStops++;
     dispatch_async(dispatch_get_main_queue(), ^{
         [PBPlayer stop];
         PBPlayer = nil;
@@ -56,4 +58,8 @@ void PBKeepAliveStop(void) {
                                     withOptions:AVAudioSessionSetActiveOptionNotifyOthersOnDeactivation
                                           error:nil];
     });
+}
+
+BOOL PBKeepAliveActive(void) {
+    return PBPlayer.isPlaying;
 }
