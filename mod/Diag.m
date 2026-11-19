@@ -8,6 +8,8 @@
 int PBDiagHookFired;
 int PBDiagGlassApplied;
 int PBDiagEligible;
+int PBDiagButtonsSeen;
+BOOL PBGlassEnabled = NO;
 BOOL PBDiagShown;
 
 static NSString *PBClassState(const char *name) {
@@ -54,6 +56,18 @@ static NSString *PBClassState(const char *name) {
         [[UIBarButtonItem alloc] initWithBarButtonSystemItem:UIBarButtonSystemItemAction
                                                      target:self
                                                      action:@selector(pbShare)];
+    UIBarButtonItem *glass = [[UIBarButtonItem alloc] initWithTitle:@"Verre"
+                                                             style:UIBarButtonItemStylePlain
+                                                            target:self
+                                                            action:@selector(pbGlass)];
+    self.navigationItem.leftBarButtonItems = @[self.navigationItem.leftBarButtonItem, glass];
+}
+
+- (void)pbGlass {
+    PBGlassEnabled = YES;
+    PBScanWindows();
+    _text.text = [_text.text stringByAppendingFormat:@"\nverre ON -> appliqué %d, éligibles %d\n",
+                  PBDiagGlassApplied, PBDiagEligible];
 }
 
 - (void)setReport:(NSString *)report {
@@ -111,12 +125,15 @@ void PBShowDiag(id host, id tabList) {
         sample = build(glass, make, 0);
     }
 
+    PBScanWindows();
+
     NSMutableString *report = [NSMutableString string];
     [report appendFormat:@"iOS %@\n", UIDevice.currentDevice.systemVersion];
     [report appendString:@"tweak chargé: oui\n"];
     [report appendFormat:@"didMoveToWindow: %d appels\n", PBDiagHookFired];
     [report appendFormat:@"verre appliqué: %d boutons\n", PBDiagGlassApplied];
     [report appendFormat:@"boutons éligibles: %d\n", PBDiagEligible];
+    [report appendFormat:@"boutons vus: %d\n", PBDiagButtonsSeen];
     [report appendFormat:@"UIGlassEffect: %@\n", PBClassState("UIGlassEffect")];
     [report appendFormat:@"effectWithStyle:: %@\n", canMake ? @"présente" : @"ABSENTE"];
     [report appendFormat:@"style 0 -> %@\n", sample ? NSStringFromClass([sample class]) : @"nil"];

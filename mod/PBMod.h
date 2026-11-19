@@ -17,8 +17,11 @@ void PBKeepAliveStop(void);
 extern int PBDiagHookFired;
 extern int PBDiagGlassApplied;
 extern int PBDiagEligible;
+extern int PBDiagButtonsSeen;
 extern BOOL PBDiagShown;
+extern BOOL PBGlassEnabled;
 void PBShowDiag(id host, id tabList);
+void PBScanWindows(void);
 
 #ifdef __cplusplus
 }

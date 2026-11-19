@@ -36,7 +36,9 @@ static NSInteger PBIndexOfController(NSArray<UIViewController *> *vcs, NSString 
         for (UIViewController *child in ((UITabBarController *)self).viewControllers) {
             [names addObject:NSStringFromClass(child.class)];
         }
-        PBShowDiag(self, [names componentsJoinedByString:@", "]);
+        PBShowDiag(self, [NSString stringWithFormat:@"%lu -> %@",
+                          (unsigned long)((UITabBarController *)self).viewControllers.count,
+                          [names componentsJoinedByString:@", "]]);
     }
     // Once only: viewDidAppear fires again after modal sheets, and resetting the
     // tab every time would fight the user.
@@ -78,7 +80,7 @@ static void PBRefreshIfDue(void) {
     %orig;
     PBLibraryViewController = (UIViewController *)self;
     dispatch_after(dispatch_time(DISPATCH_TIME_NOW, 4 * NSEC_PER_SEC), dispatch_get_main_queue(), ^{
-        if (!PBDiagShown) PBShowDiag(PBLibraryViewController, nil);
+        if (!PBDiagShown) PBShowDiag(PBLibraryViewController, @"JAMAIS (repli Library)");
     });
     // A timer only ticks while the process is alive; combined with KeepAlive it
     // keeps checking while the app sits in the background.
@@ -173,12 +175,11 @@ static void PBScheduleFlush(void) {
 
 #pragma mark - Liquid Glass buttons (iOS 26+)
 
-// Off while we check whether clearing the button's backgroundColor hides it:
-// the missing "+" in the Extensions tab may be exactly that.
-static BOOL PBGlassEnabled = NO;
-
 // The app is built against the iOS 18 SDK, so it keeps the pre-glass look.
 // UIGlassEffect exists at runtime from iOS 26 and can be applied to any view.
+// Buttons are found by walking the hierarchy rather than by hooking
+// -didMoveToWindow: UIKit's own button subclasses override it, so the hook
+// never fired (diag: 0 calls while other hooks worked).
 static void PBApplyGlass(UIButton *button) {
     if (@available(iOS 26.0, *)) {
         Class glassClass = NSClassFromString(@"UIGlassEffect");
@@ -220,15 +221,6 @@ static void PBApplyGlass(UIButton *button) {
     }
 }
 
-%hook UIButton
-
-- (void)didMoveToWindow {
-    %orig;
-    PBDiagHookFired++;
-    if (self.window) PBApplyGlass(self);
-}
-%end
-
 #pragma mark - Tab bar
 
 %hook _TtC18ESTabBarController18ESTabBarController
@@ -240,3 +232,20 @@ static void PBApplyGlass(UIButton *button) {
     tabs.tabBar.unselectedItemTintColor = [UIColor secondaryLabelColor];
 }
 %end
+
+static void PBWalk(UIView *view, void (^visit)(UIButton *)) {
+    if ([view isKindOfClass:UIButton.class]) visit((UIButton *)view);
+    for (UIView *child in view.subviews) PBWalk(child, visit);
+}
+
+void PBScanWindows(void) {
+    for (UIScene *scene in UIApplication.sharedApplication.connectedScenes) {
+        if (![scene isKindOfClass:UIWindowScene.class]) continue;
+        for (UIWindow *window in ((UIWindowScene *)scene).windows) {
+            PBWalk(window, ^(UIButton *button) {
+                PBDiagButtonsSeen++;
+                PBApplyGlass(button);
+            });
+        }
+    }
+}
