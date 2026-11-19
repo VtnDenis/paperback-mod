@@ -5,7 +5,7 @@ INSTALL_TARGET_PROCESSES := Paperback
 include $(THEOS)/makefiles/common.mk
 
 TWEAK_NAME := PaperbackMod
-PaperbackMod_FILES := Tweak.xm Notifier.xm KeepAlive.m SubstrateShim.m Diag.m
+PaperbackMod_FILES := Tweak.xm Notifier.xm KeepAlive.m SubstrateShim.m Diag.m Bootstrap.m
 PaperbackMod_FRAMEWORKS := UIKit UserNotifications AVFoundation Foundation
 PaperbackMod_CFLAGS := -fobjc-arc
 

@@ -9,24 +9,9 @@ static const NSTimeInterval PBRefreshInterval = 30 * 60;
 
 // Notifications instead of %hook: the app's SceneDelegate implements
 // -sceneDidBecomeActive: but not -sceneWillResignActive:, and a %orig that
-// points nowhere takes the whole process down at launch.
-%ctor {
-    NSNotificationCenter *center = [NSNotificationCenter defaultCenter];
-    [center addObserverForName:UIApplicationDidFinishLaunchingNotification
-                        object:nil queue:nil usingBlock:^(NSNotification *note) {
-        PBRequestAuth();
-    }];
-    [center addObserverForName:UIApplicationDidEnterBackgroundNotification
-                        object:nil queue:nil usingBlock:^(NSNotification *note) {
-        // Downloads die in the background otherwise: no background URLSession, no
-        // BGTask, so the queue only lives while the process runs. See MAP.md.
-        PBKeepAliveStart();
-    }];
-    [center addObserverForName:UIApplicationWillEnterForegroundNotification
-                        object:nil queue:nil usingBlock:^(NSNotification *note) {
-        PBKeepAliveStop();
-    }];
-}
+// points nowhere takes the whole process down at launch. The observers now live
+// in Bootstrap.m: a %ctor here would replace the Logos constructor and skip
+// _logosLocalInit(), i.e. install no hook at all.
 
 #pragma mark - Open on Library instead of Discover
 
@@ -188,6 +173,10 @@ static void PBScheduleFlush(void) {
 
 #pragma mark - Liquid Glass buttons (iOS 26+)
 
+// Off while we check whether clearing the button's backgroundColor hides it:
+// the missing "+" in the Extensions tab may be exactly that.
+static BOOL PBGlassEnabled = NO;
+
 // The app is built against the iOS 18 SDK, so it keeps the pre-glass look.
 // UIGlassEffect exists at runtime from iOS 26 and can be applied to any view.
 static void PBApplyGlass(UIButton *button) {
@@ -199,6 +188,10 @@ static void PBApplyGlass(UIButton *button) {
         // bar buttons have no background of their own.
         UIColor *surface = button.backgroundColor;
         if (!surface && button.layer.borderWidth == 0) return;
+        PBDiagEligible++;
+        // Dry run for now: restoring the button's own background is the whole
+        // point of the next test.
+        if (!PBGlassEnabled) return;
 
         // Style 0 is `regular`; `clear` is the other case.
         SEL make = NSSelectorFromString(@"effectWithStyle:");

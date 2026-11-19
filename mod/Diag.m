@@ -7,6 +7,7 @@
 
 int PBDiagHookFired;
 int PBDiagGlassApplied;
+int PBDiagEligible;
 BOOL PBDiagShown;
 
 static NSString *PBClassState(const char *name) {
@@ -22,6 +23,7 @@ static NSString *PBClassState(const char *name) {
 
 @implementation PBDiagViewController {
     UITextView *_text;
+    NSString *_report;
 }
 
 - (void)viewDidLoad {
@@ -32,6 +34,7 @@ static NSString *PBClassState(const char *name) {
     _text = [[UITextView alloc] initWithFrame:CGRectZero];
     _text.editable = NO;
     _text.font = [UIFont monospacedSystemFontOfSize:13 weight:UIFontWeightRegular];
+    _text.text = _report;
     _text.translatesAutoresizingMaskIntoConstraints = NO;
     [self.view addSubview:_text];
 
@@ -54,7 +57,7 @@ static NSString *PBClassState(const char *name) {
 }
 
 - (void)setReport:(NSString *)report {
-    _text.text = report;
+    _report = [report copy];
 }
 
 - (void)pbDone {
@@ -113,11 +116,15 @@ void PBShowDiag(id host, id tabList) {
     [report appendString:@"tweak chargé: oui\n"];
     [report appendFormat:@"didMoveToWindow: %d appels\n", PBDiagHookFired];
     [report appendFormat:@"verre appliqué: %d boutons\n", PBDiagGlassApplied];
+    [report appendFormat:@"boutons éligibles: %d\n", PBDiagEligible];
     [report appendFormat:@"UIGlassEffect: %@\n", PBClassState("UIGlassEffect")];
     [report appendFormat:@"effectWithStyle:: %@\n", canMake ? @"présente" : @"ABSENTE"];
     [report appendFormat:@"style 0 -> %@\n", sample ? NSStringFromClass([sample class]) : @"nil"];
     [report appendFormat:@"MainTabViewController: %@\n", PBClassState("_TtC9Paperback21MainTabViewController")];
     [report appendFormat:@"LibraryViewController: %@\n", PBClassState("_TtC9Paperback21LibraryViewController")];
+    Class library = objc_getClass("_TtC9Paperback21LibraryViewController");
+    [report appendFormat:@"didRefreshCollectionView:: %@\n",
+        (library && class_getInstanceMethod(library, NSSelectorFromString(@"didRefreshCollectionView:"))) ? @"trouvée" : @"ABSENTE"];
     [report appendFormat:@"onglets: %@\n", tabList ?: @"viewDidAppear jamais appelé"];
 
     PBDiagViewController *diag = [PBDiagViewController new];
