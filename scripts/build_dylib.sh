@@ -33,7 +33,7 @@ ln -sf "$THEOS/vendor/lib/CydiaSubstrate.framework/Headers/CydiaSubstrate.h" \
 
 cd "$ROOT/mod" || exit 1
 mkdir -p obj
-CFLAGS="-target arm64-apple-ios13.0 -isysroot $SDK -fobjc-arc -fmodules -I. -I$THEOS/include -I$THEOS/vendor/include -I$THEOS/vendor/lib/CydiaSubstrate.framework/Headers -O2 -c"
+CFLAGS="-target arm64-apple-ios13.0 -isysroot $SDK -fobjc-arc -I. -I$THEOS/include -I$THEOS/vendor/include -I$THEOS/vendor/lib/CydiaSubstrate.framework/Headers -O2 -c"
 # Source list comes from the makefile so it can't drift out of sync.
 OBJS=""
 for f in $(sed -n 's/^PaperbackMod_FILES *:= *//p' Makefile); do
