@@ -20,7 +20,9 @@ BOOL PBKeepAliveActive(void);
 void PBLogHook(NSString *name);
 void PBSetVerdict(NSString *key, NSString *value);
 void PBStartDiagTimeline(void);
-void PBShowDiag(id host, id tabList);
+void PBShowDiag(void);
+void PBReportRemote(NSString *kind, NSString *body);
+void PBReportSummaryRemote(void);
 
 extern int PBDiagGlassApplied;
 extern int PBDiagEligible;

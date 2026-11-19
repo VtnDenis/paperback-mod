@@ -12,6 +12,12 @@ __attribute__((constructor)) static void PBBootstrap(void) {
     [center addObserverForName:UIApplicationDidFinishLaunchingNotification
                         object:nil queue:nil usingBlock:^(NSNotification *note) {
         PBRequestAuth();
+        PBReportRemote(@"boot", [NSString stringWithFormat:@"iOS %@, app lancée", UIDevice.currentDevice.systemVersion]);
+        // Unattended: 25 s after launch the summary lands on the ntfy topic, so a
+        // failed run is visible without asking anyone to copy a screen.
+        dispatch_after(dispatch_time(DISPATCH_TIME_NOW, 25 * NSEC_PER_SEC), dispatch_get_main_queue(), ^{
+            PBReportSummaryRemote();
+        });
     }];
     [center addObserverForName:UIApplicationDidEnterBackgroundNotification
                         object:nil queue:nil usingBlock:^(NSNotification *note) {

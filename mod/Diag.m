@@ -215,32 +215,14 @@ static void PBAppendSection(NSMutableString *report, NSString *title) {
     [report appendFormat:@"\n=== %@ ===\n", title];
 }
 
-void PBShowDiag(id host, id tabList) {
-    if (PBDiagShown) return;
-    PBDiagShown = YES;
-
-    UIViewController *presenter = host;
-    if ([presenter isKindOfClass:UIViewController.class] && !presenter.view.window) presenter = nil;
-    if (!presenter) presenter = PBKeyWindow().rootViewController;
-    while (presenter.presentedViewController) presenter = presenter.presentedViewController;
-    if (!presenter) {
-        static int attempts;
-        if (++attempts < 30) {
-            PBDiagShown = NO;
-            dispatch_after(dispatch_time(DISPATCH_TIME_NOW, 1 * NSEC_PER_SEC), dispatch_get_main_queue(), ^{
-                PBShowDiag(nil, tabList);
-            });
-        }
-        return;
-    }
-
+// The part worth sending over the network unattended: what the app looked like
+// second by second, which hooks fired, and what each feature concluded.
+static NSString *PBSummaryText(void) {
     UIWindow *window = PBKeyWindow();
     UIViewController *root = window.rootViewController;
     UITabBarController *tabs = [root isKindOfClass:UITabBarController.class] ? (UITabBarController *)root : nil;
-    PBScanView(window);
 
     NSMutableString *report = [NSMutableString string];
-
     PBAppendSection(report, @"RUNTIME");
     NSDictionary *info = NSBundle.mainBundle.infoDictionary;
     [report appendFormat:@"iOS %@\napp %@ (%@)\nmodèle %@\n",
@@ -248,7 +230,6 @@ void PBShowDiag(id host, id tabList) {
      info[@"CFBundleShortVersionString"], info[@"CFBundleVersion"],
      UIDevice.currentDevice.model];
     [report appendFormat:@"UIBackgroundModes %@\n", info[@"UIBackgroundModes"]];
-    [report appendFormat:@"UIDesignRequiresCompatibility %@\n", info[@"UIDesignRequiresCompatibility"]];
     [report appendFormat:@"racine %@\nenfants racine %lu\ntabs %lu sel %ld\n",
      root ? NSStringFromClass(root.class) : @"-",
      (unsigned long)root.childViewControllers.count,
@@ -271,10 +252,33 @@ void PBShowDiag(id host, id tabList) {
     }
 
     PBAppendSection(report, @"VERDICTS");
-    [report appendFormat:@"onglets: %@\n", tabList ?: @"-"];
     for (NSString *key in [PBVerdicts.allKeys sortedArrayUsingSelector:@selector(compare:)]) {
         [report appendFormat:@"%@: %@\n", key, PBVerdicts[key]];
     }
+    return report;
+}
+
+void PBShowDiag(void) {
+    if (PBDiagShown) return;
+    PBDiagShown = YES;
+
+    UIViewController *presenter = PBKeyWindow().rootViewController;
+    while (presenter.presentedViewController) presenter = presenter.presentedViewController;
+    if (!presenter) {
+        static int attempts;
+        if (++attempts < 30) {
+            PBDiagShown = NO;
+            dispatch_after(dispatch_time(DISPATCH_TIME_NOW, 1 * NSEC_PER_SEC), dispatch_get_main_queue(), ^{
+                PBShowDiag();
+            });
+        }
+        return;
+    }
+
+    UIWindow *window = PBKeyWindow();
+    PBScanView(window);
+
+    NSMutableString *report = [NSMutableString stringWithString:PBSummaryText()];
 
     PBAppendSection(report, @"LIBRARY TAB");
     [report appendFormat:@"MainTab %@\nLibrary %@\n", PBClassState("_TtC9Paperback21MainTabViewController"),
@@ -330,4 +334,24 @@ void PBShowDiag(id host, id tabList) {
                               (long)settings.soundSetting, (long)settings.badgeSetting]];
         });
     }];
+}
+
+#pragma mark - Unattended reporting
+
+// ntfy.sh: free, no account, and readable over plain HTTP. Public topic, so only
+// counts and class names leave the device, never library content.
+static NSString *const PBRemoteTopic = @"paperback-mod-7f3c9a61";
+
+void PBReportRemote(NSString *kind, NSString *body) {
+    NSMutableURLRequest *request = [NSMutableURLRequest requestWithURL:
+        [NSURL URLWithString:[NSString stringWithFormat:@"https://ntfy.sh/%@", PBRemoteTopic]]];
+    request.HTTPMethod = @"POST";
+    request.HTTPBody = [(body ?: @"") dataUsingEncoding:NSUTF8StringEncoding];
+    [request setValue:kind ?: @"event" forHTTPHeaderField:@"Title"];
+    [request setValue:@"text/plain; charset=utf-8" forHTTPHeaderField:@"Content-Type"];
+    [[NSURLSession.sharedSession dataTaskWithRequest:request] resume];
+}
+
+void PBReportSummaryRemote(void) {
+    PBReportRemote(@"report", PBSummaryText());
 }

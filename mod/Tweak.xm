@@ -74,8 +74,10 @@ static void PBJumpToLibrary(UITabBarController *tabs, int attempt) {
     if (!PBDiagShown) {
         NSMutableArray<NSString *> *names = [NSMutableArray array];
         for (UIViewController *child in tabs.viewControllers) [names addObject:NSStringFromClass(child.class)];
-        PBShowDiag(tabs, [NSString stringWithFormat:@"%lu -> %@ (saut: %ld)",
-                          (unsigned long)names.count, [names componentsJoinedByString:@", "], (long)library]);
+        PBSetVerdict(@"onglets", [NSString stringWithFormat:@"%lu -> %@ (saut: %ld)",
+                                  (unsigned long)names.count, [names componentsJoinedByString:@", "], (long)library]);
+        PBReportSummaryRemote();
+        PBShowDiag();
     }
 }
 
@@ -136,7 +138,10 @@ static void PBRefreshIfDue(void) {
     PBLogHook(@"library.viewDidLoad");
     PBLibraryViewController = (UIViewController *)self;
     dispatch_after(dispatch_time(DISPATCH_TIME_NOW, 15 * NSEC_PER_SEC), dispatch_get_main_queue(), ^{
-        if (!PBDiagShown) PBShowDiag(PBLibraryViewController, @"JAMAIS (repli Library)");
+        if (!PBDiagShown) {
+            PBSetVerdict(@"onglets", @"JAMAIS (repli Library)");
+            PBShowDiag();
+        }
     });
     // A timer only ticks while the process is alive; combined with KeepAlive it
     // keeps checking while the app sits in the background.

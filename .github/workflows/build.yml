@@ -1,0 +1,45 @@
+name: build
+
+# No simulator and no device here: this proves the tweak still compiles, links
+# and packages. Runtime facts come from the ntfy report (see mod/Diag.m).
+on:
+  push:
+  workflow_dispatch:
+
+jobs:
+  dylib:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: theos and sdk
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y make perl clang lld dpkg
+          git clone --depth 1 https://github.com/theos/theos.git "$HOME/theos"
+          "$HOME/theos/bin/update-theos" || true
+          git clone --depth 1 --filter=blob:none --sparse https://github.com/theos/sdks.git "$HOME/sdks"
+          git -C "$HOME/sdks" sparse-checkout set iPhoneOS16.5.sdk
+          mkdir -p "$HOME/theos/sdks"
+          cp -r "$HOME/sdks/iPhoneOS16.5.sdk" "$HOME/theos/sdks/"
+
+      - name: build
+        run: bash _tools/build_dylib.sh
+
+      - name: reject C++ mangled helpers
+        run: |
+          NM=""
+          for candidate in llvm-nm llvm-nm-19 llvm-nm-18 llvm-nm-17 llvm-nm-16; do
+            if command -v "$candidate" >/dev/null; then NM="$candidate"; break; fi
+          done
+          if [ -z "$NM" ]; then echo "no llvm-nm, skipping symbol check"; exit 0; fi
+          "$NM" --defined-only mod/PaperbackMod.dylib | tee /tmp/syms.txt
+          if grep -q '__Z[0-9]*PB' /tmp/syms.txt; then
+            echo "helpers got C++ mangled: they must go through PBMod.h extern \"C\""
+            exit 1
+          fi
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: PaperbackMod.dylib
+          path: mod/PaperbackMod.dylib
