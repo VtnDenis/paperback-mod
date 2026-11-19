@@ -24,7 +24,7 @@ jobs:
           cp -r "$HOME/sdks/iPhoneOS16.5.sdk" "$HOME/theos/sdks/"
 
       - name: build
-        run: bash _tools/build_dylib.sh
+        run: bash scripts/build_dylib.sh
 
       - name: reject C++ mangled helpers
         run: |
