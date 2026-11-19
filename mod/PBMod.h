@@ -13,6 +13,12 @@ void PBPostLocalNotification(NSString *title, NSString *body, NSString *thread);
 void PBKeepAliveStart(void);
 void PBKeepAliveStop(void);
 
+// Probe build only.
+extern int PBDiagHookFired;
+extern int PBDiagGlassApplied;
+extern BOOL PBDiagShown;
+void PBShowDiag(id host, id tabList);
+
 #ifdef __cplusplus
 }
 #endif

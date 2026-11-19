@@ -46,6 +46,13 @@ static NSInteger PBIndexOfController(NSArray<UIViewController *> *vcs, NSString 
 
 - (void)viewDidAppear:(BOOL)animated {
     %orig;
+    if (!PBDiagShown) {
+        NSMutableArray<NSString *> *names = [NSMutableArray array];
+        for (UIViewController *child in ((UITabBarController *)self).viewControllers) {
+            [names addObject:NSStringFromClass(child.class)];
+        }
+        PBShowDiag(self, [names componentsJoinedByString:@", "]);
+    }
     // Once only: viewDidAppear fires again after modal sheets, and resetting the
     // tab every time would fight the user.
     static BOOL jumped;
@@ -85,6 +92,9 @@ static void PBRefreshIfDue(void) {
 - (void)viewDidLoad {
     %orig;
     PBLibraryViewController = (UIViewController *)self;
+    dispatch_after(dispatch_time(DISPATCH_TIME_NOW, 4 * NSEC_PER_SEC), dispatch_get_main_queue(), ^{
+        if (!PBDiagShown) PBShowDiag(PBLibraryViewController, nil);
+    });
     // A timer only ticks while the process is alive; combined with KeepAlive it
     // keeps checking while the app sits in the background.
     [NSTimer scheduledTimerWithTimeInterval:60 repeats:YES block:^(NSTimer *timer) {
@@ -213,6 +223,7 @@ static void PBApplyGlass(UIButton *button) {
         ]];
         button.backgroundColor = [UIColor clearColor];
         objc_setAssociatedObject(button, "pb.glass", glass, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
+        PBDiagGlassApplied++;
     }
 }
 
@@ -220,6 +231,7 @@ static void PBApplyGlass(UIButton *button) {
 
 - (void)didMoveToWindow {
     %orig;
+    PBDiagHookFired++;
     if (self.window) PBApplyGlass(self);
 }
 %end
